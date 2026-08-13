@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#09090d">
+    <link rel="icon" href="data:,">
+    <title>Void AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #08080b;
+            --surface: #121218;
+            --surface-2: #1a1a22;
+            --surface-3: #23232d;
+            --line: rgba(255, 255, 255, 0.09);
+            --muted: #8f8f9f;
+            --text: #f6f5f8;
+            --soft-text: #c5c3ce;
+            --red: #ef3158;
+            --red-dark: #4b1224;
+            --gold: #e9bc72;
+            --green: #5fe0ad;
+            --shadow: 0 18px 50px rgba(0, 0, 0, 0.32);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { min-height: 100%; }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(circle at 85% 0%, rgba(113, 17, 48, 0.22), transparent 34rem),
+                radial-gradient(circle at 0% 45%, rgba(52, 16, 42, 0.12), transparent 27rem),
+                var(--bg);
+            color: var(--text);
+            font-family: "Manrope", system-ui, sans-serif;
+        }
+
+        button, input, select { font: inherit; }
+        button { color: inherit; }
+        button:focus-visible, input:focus-visible, select:focus-visible {
+            outline: 2px solid var(--red);
+            outline-offset: 3px;
+        }
+
+        .app-shell {
+            width: min(100%, 860px);
+            min-height: 100vh;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .topbar {
+            height: 76px;
+            padding: 18px clamp(18px, 4vw, 34px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: linear-gradient(180deg, rgba(8, 8, 11, 0.98), rgba(8, 8, 11, 0.82));
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-width: 0;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            border: 1px solid rgba(239, 49, 88, 0.65);
+            border-radius: 12px 12px 12px 3px;
+            display: grid;
+            place-items: center;
+            color: var(--red);
+            background: linear-gradient(145deg, rgba(239, 49, 88, 0.2), rgba(239, 49, 88, 0.03));
+            box-shadow: 0 0 26px rgba(239, 49, 88, 0.12);
+        }
+
+        .brand-mark svg { width: 21px; height: 21px; }
+
+        .brand-copy { min-width: 0; }
+        .brand-name {
+            font-size: 15px;
+            letter-spacing: 0.18em;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .brand-status {
+            color: var(--muted);
+            font-size: 10px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 10px rgba(95, 224, 173, 0.7);
+        }
+
+        .top-actions { display: flex; align-items: center; gap: 8px; }
+        .icon-button {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 11px;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: 160ms ease;
+        }
+        .icon-button:hover { border-color: rgba(239, 49, 88, 0.7); color: var(--red); }
+        .icon-button svg { width: 17px; height: 17px; }
+
+        .chat-scroll {
+            flex: 1;
+            padding: 20px clamp(16px, 4vw, 34px) 168px;
+            overflow: auto;
+            scroll-behavior: smooth;
+        }
+
+        .hero {
+            padding: 18px 0 23px;
+            animation: rise 420ms ease both;
+        }
+        .eyebrow {
+            color: var(--red);
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.22em;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+        .hero h1 {
+            margin: 0;
+            max-width: 620px;
+            font-size: clamp(28px, 6vw, 48px);
+            line-height: 1.04;
+            letter-spacing: -0.05em;
+        }
+        .hero h1 span {
+            color: var(--soft-text);
+            font-weight: 500;
+        }
+        .hero p {
+            color: var(--muted);
+            line-height: 1.6;
+            font-size: 13px;
+            max-width: 540px;
+            margin: 15px 0 0;
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .suggestion {
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.035);
+            border-radius: 999px;
+            color: var(--soft-text);
+            padding: 9px 13px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: 160ms ease;
+        }
+        .suggestion:hover { background: var(--red-dark); border-color: rgba(239, 49, 88, 0.6); color: var(--text); }
+        .suggestion.auto-tab {
+            color: #ffb4c3;
+            border-color: rgba(239, 49, 88, 0.38);
+            background: linear-gradient(135deg, rgba(239, 49, 88, 0.14), rgba(255, 255, 255, 0.035));
+        }
+        .suggestion.auto-tab.active {
+            color: white;
+            background: var(--red);
+            border-color: var(--red);
+        }
+
+        .auto-cs-panel {
+            display: none;
+            margin: 6px 0 24px;
+            padding: 16px;
+            border: 1px solid rgba(239, 49, 88, 0.28);
+            border-radius: 18px;
+            background:
+                radial-gradient(circle at 100% 0, rgba(239, 49, 88, 0.12), transparent 19rem),
+                rgba(18, 18, 24, 0.9);
+            box-shadow: var(--shadow);
+            animation: rise 260ms ease both;
+        }
+        .auto-cs-panel.open { display: block; }
+        .auto-panel-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+        .auto-panel-kicker {
+            color: var(--red);
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+        .auto-panel-title {
+            margin: 5px 0 0;
+            font-size: 20px;
+            letter-spacing: -0.04em;
+        }
+        .auto-panel-description {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.55;
+            margin: 5px 0 0;
+            max-width: 510px;
+        }
+        .auto-close {
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            color: var(--muted);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 7px 10px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .auto-close:hover { color: var(--text); border-color: var(--red); }
+        .auto-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+            gap: 14px;
+        }
+        .auto-column {
+            min-width: 0;
+            padding: 13px;
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            background: rgba(8, 8, 11, 0.42);
+        }
+        .auto-column-title {
+            margin: 0 0 11px;
+            color: var(--soft-text);
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .auto-form { display: grid; gap: 9px; }
+        .auto-form label {
+            display: grid;
+            gap: 5px;
+            color: var(--muted);
+            font-size: 10px;
+        }
+        .auto-form input, .auto-form textarea {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            outline: 0;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.045);
+            padding: 9px 10px;
+            font-size: 12px;
+        }
+        .auto-form textarea { min-height: 62px; resize: vertical; }
+        .auto-form input:focus, .auto-form textarea:focus { border-color: rgba(239, 49, 88, 0.8); }
+        .auto-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+        }
+        .auto-button-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 3px;
+        }
+        .auto-primary, .auto-secondary {
+            border-radius: 8px;
+            padding: 9px 11px;
+            font-size: 11px;
+            cursor: pointer;
+            border: 1px solid var(--line);
+        }
+        .auto-primary {
+            color: white;
+            background: var(--red);
+            border-color: var(--red);
+        }
+        .auto-primary:hover { background: #ff466d; }
+        .auto-secondary { color: var(--soft-text); background: rgba(255, 255, 255, 0.05); }
+        .auto-secondary:hover { border-color: var(--red); }
+        .auto-primary:disabled, .auto-secondary:disabled { opacity: 0.5; cursor: wait; }
+        .auto-chat-box {
+            height: 142px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            padding: 9px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: rgba(0, 0, 0, 0.22);
+            margin-bottom: 8px;
+        }
+        .auto-chat-message {
+            max-width: 92%;
+            border-radius: 8px;
+            padding: 7px 9px;
+            color: var(--soft-text);
+            font-size: 11px;
+            line-height: 1.5;
+            background: var(--surface-2);
+        }
+        .auto-chat-message.user {
+            align-self: flex-end;
+            color: #f8d9df;
+            background: var(--red-dark);
+        }
+        .auto-chat-form { display: flex; gap: 7px; }
+        .auto-chat-form input {
+            min-width: 0;
+            flex: 1;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px 9px;
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.045);
+            outline: 0;
+            font-size: 11px;
+        }
+        .auto-chat-form button {
+            border: 0;
+            border-radius: 8px;
+            padding: 0 11px;
+            color: white;
+            background: var(--red);
+            cursor: pointer;
+        }
+        .story-preview {
+            width: 100%;
+            min-height: 190px;
+            resize: vertical;
+            border: 1px solid rgba(95, 224, 173, 0.22);
+            border-radius: 9px;
+            padding: 10px;
+            color: var(--soft-text);
+            background: rgba(5, 17, 14, 0.45);
+            outline: 0;
+            font: 12px/1.65 "Manrope", sans-serif;
+        }
+        .story-preview:focus { border-color: rgba(95, 224, 173, 0.7); }
+        .story-state {
+            min-height: 18px;
+            color: var(--muted);
+            font-size: 10px;
+            line-height: 1.45;
+            margin: 7px 0;
+        }
+        .story-state.success { color: var(--green); }
+        .story-state.error { color: #ff9db1; }
+        .review-note {
+            display: flex;
+            gap: 7px;
+            align-items: flex-start;
+            margin-top: 9px;
+            padding: 9px;
+            border: 1px solid rgba(233, 188, 114, 0.2);
+            border-radius: 8px;
+            color: #d9bc8c;
+            background: rgba(233, 188, 114, 0.06);
+            font-size: 10px;
+            line-height: 1.5;
+        }
+        .review-note a { color: #f2d29d; }
+        .review-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 9px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.025);
+        }
+        .detector-status {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            min-width: 0;
+            color: var(--soft-text);
+            font-size: 10px;
+        }
+        .detector-status strong {
+            display: block;
+            color: var(--text);
+            font-size: 10px;
+        }
+        .detector-label {
+            display: block;
+            margin-top: 2px;
+            color: var(--muted);
+        }
+        .detector-status-dot {
+            width: 7px;
+            height: 7px;
+            flex: 0 0 7px;
+            border-radius: 50%;
+            background: var(--gold);
+        }
+        .detector-status[data-state="edited"] .detector-status-dot {
+            background: var(--red);
+        }
+        .detector-status[data-state="ready"] .detector-status-dot {
+            background: var(--green);
+            box-shadow: 0 0 9px rgba(95, 224, 173, 0.55);
+        }
+        .review-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 7px;
+        }
+        .review-link {
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+        }
+
+        #chat-box { display: flex; flex-direction: column; gap: 18px; }
+        .message-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            animation: rise 260ms ease both;
+        }
+        .message-row.user { justify-content: flex-end; }
+        .message-avatar {
+            width: 30px;
+            height: 30px;
+            flex: 0 0 30px;
+            border-radius: 10px 10px 10px 3px;
+            display: grid;
+            place-items: center;
+            color: var(--red);
+            background: rgba(239, 49, 88, 0.12);
+            border: 1px solid rgba(239, 49, 88, 0.28);
+            font-size: 10px;
+            font-weight: 800;
+        }
+        .message-row.user .message-avatar { display: none; }
+        .message-bubble {
+            max-width: min(92%, 700px);
+            border: 1px solid var(--line);
+            border-radius: 16px 16px 16px 4px;
+            background: var(--surface);
+            padding: 15px 16px;
+            color: var(--soft-text);
+            font-size: 13px;
+            line-height: 1.72;
+            box-shadow: var(--shadow);
+        }
+        .message-row.user .message-bubble {
+            border-radius: 16px 16px 4px 16px;
+            background: linear-gradient(145deg, #481323, #2b0e1a);
+            border-color: rgba(239, 49, 88, 0.3);
+            color: #f8d9df;
+        }
+        .message-bubble p { margin: 0 0 10px; }
+        .message-bubble p:last-child { margin-bottom: 0; }
+        .message-bubble strong { color: var(--text); }
+        .message-meta {
+            color: #666675;
+            font-size: 10px;
+            margin-top: 7px;
+            padding: 0 4px;
+        }
+        .message-row.user .message-meta { text-align: right; }
+
+        .code-card {
+            overflow: hidden;
+            border: 1px solid rgba(239, 49, 88, 0.35);
+            border-radius: 13px;
+            background: #08090b;
+            margin: 12px 0 2px;
+        }
+        .code-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 11px 10px 13px;
+            background: linear-gradient(90deg, rgba(94, 11, 32, 0.72), rgba(36, 10, 19, 0.6));
+            border-bottom: 1px solid rgba(239, 49, 88, 0.22);
+        }
+        .code-language {
+            color: #ff6c8b;
+            font-family: "DM Mono", monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+        .code-actions { display: flex; gap: 6px; }
+        .code-action {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 7px;
+            color: #d9c6c8;
+            padding: 6px 9px;
+            cursor: pointer;
+            font-size: 10px;
+        }
+        .code-action:hover { background: rgba(239, 49, 88, 0.2); color: white; }
+        .code-action.run { color: var(--green); border-color: rgba(95, 224, 173, 0.3); }
+        pre {
+            margin: 0;
+            padding: 15px;
+            overflow-x: auto;
+            color: #e9e2e2;
+            font: 12px/1.75 "DM Mono", monospace;
+            white-space: pre;
+        }
+        .inline-code {
+            color: #ff9aae;
+            background: rgba(239, 49, 88, 0.12);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font: 11px "DM Mono", monospace;
+        }
+
+        .system-message {
+            border: 1px solid rgba(233, 188, 114, 0.25);
+            background: rgba(233, 188, 114, 0.08);
+            border-radius: 10px;
+            color: var(--gold);
+            font-size: 11px;
+            padding: 10px 12px;
+        }
+        .error-message {
+            border-color: rgba(239, 49, 88, 0.45);
+            background: rgba(239, 49, 88, 0.1);
+            color: #ff9db1;
+        }
+
+        .composer-dock {
+            position: fixed;
+            z-index: 9;
+            bottom: 0;
+            left: 50%;
+            width: min(100%, 860px);
+            transform: translateX(-50%);
+            padding: 12px clamp(16px, 4vw, 34px) calc(12px + env(safe-area-inset-bottom));
+            background: linear-gradient(180deg, rgba(8, 8, 11, 0), rgba(8, 8, 11, 0.96) 25%);
+        }
+        .file-preview {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            color: var(--soft-text);
+            background: var(--surface-2);
+            border: 1px solid var(--line);
+            border-radius: 9px 9px 0 0;
+            padding: 8px 11px;
+            font-size: 11px;
+        }
+        .file-preview.visible { display: flex; }
+        .remove-file {
+            border: 0;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+        }
+        .composer {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            padding: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            background: rgba(25, 25, 32, 0.94);
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(18px);
+        }
+        .composer textarea {
+            min-height: 40px;
+            max-height: 130px;
+            flex: 1;
+            resize: none;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: var(--text);
+            padding: 10px 4px;
+            font-size: 13px;
+            line-height: 1.45;
+        }
+        .composer textarea::placeholder { color: #777684; }
+        .attach-button, .send-button {
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            cursor: pointer;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .attach-button { color: var(--muted); }
+        .attach-button:hover { color: var(--text); }
+        .send-button {
+            background: var(--red);
+            border-color: var(--red);
+            box-shadow: 0 5px 18px rgba(239, 49, 88, 0.27);
+        }
+        .send-button:hover { background: #ff466d; }
+        .send-button:disabled { opacity: 0.55; cursor: wait; }
+        .attach-button svg, .send-button svg { width: 17px; height: 17px; }
+        #file-upload { display: none; }
+        .composer-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 3px 0;
+            color: #666675;
+            font-size: 10px;
+        }
+        .model-select {
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: #888795;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        .model-select option { background: #1a1a22; }
+
+        .bottom-nav {
+            display: none;
+        }
+
+        .toast {
+            position: fixed;
+            z-index: 20;
+            left: 50%;
+            bottom: 118px;
+            transform: translate(-50%, 12px);
+            opacity: 0;
+            pointer-events: none;
+            background: #f8f6f7;
+            color: #171318;
+            border-radius: 999px;
+            padding: 10px 15px;
+            font-size: 11px;
+            font-weight: 700;
+            transition: 180ms ease;
+        }
+        .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+        @keyframes rise {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (min-width: 720px) {
+            .bottom-nav { display: none; }
+            .chat-scroll { padding-bottom: 144px; }
+        }
+
+        @media (max-width: 520px) {
+            .topbar { height: 68px; }
+            .brand-mark { width: 34px; height: 34px; border-radius: 10px 10px 10px 3px; }
+            .brand-name { font-size: 13px; }
+            .hero { padding-top: 11px; }
+            .hero h1 { font-size: 32px; }
+            .suggestion { font-size: 10px; }
+            .auto-layout { grid-template-columns: 1fr; }
+            .auto-panel-head { align-items: center; }
+            .auto-panel-title { font-size: 18px; }
+            .review-toolbar { align-items: flex-start; flex-direction: column; }
+            .review-actions { width: 100%; justify-content: flex-start; }
+            .code-actions .run { display: none; }
+            .bottom-nav {
+                position: fixed;
+                z-index: 8;
+                display: flex;
+                left: 50%;
+                bottom: calc(74px + env(safe-area-inset-bottom));
+                transform: translateX(-50%);
+                width: min(92%, 390px);
+                justify-content: space-around;
+                padding: 7px;
+                border: 1px solid var(--line);
+                border-radius: 16px;
+                background: rgba(21, 21, 27, 0.88);
+                backdrop-filter: blur(16px);
+            }
+            .nav-item {
+                border: 0;
+                background: transparent;
+                color: #777684;
+                padding: 7px 12px;
+                font-size: 10px;
+                cursor: pointer;
+            }
+            .nav-item.active { color: #ff6684; }
+            .nav-item svg { display: block; width: 17px; height: 17px; margin: 0 auto 3px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path d="M6 4.8h12v8.1a6 6 0 0 1-12 0V4.8Z"/>
+                        <path d="M9 4.8V3m6 1.8V3M9 10h.01M15 10h.01M9.2 14.2c1.8 1 3.8 1 5.6 0"/>
+                    </svg>
+                </div>
+                <div class="brand-copy">
+                    <div class="brand-name">VOID AI</div>
+                    <div class="brand-status"><span class="status-dot"></span><span id="connection-status">API siap digunakan</span></div>
+                </div>
+            </div>
+            <div class="top-actions">
+                <button class="icon-button" id="clear-button" type="button" title="Hapus konteks chat" aria-label="Hapus konteks chat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7l1-3h4l1 3"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <section class="chat-scroll" id="chat-scroll">
+            <div class="hero">
+                <div class="eyebrow">AI task workspace</div>
+                <h1>Bangun sesuatu yang <span>berarti.</span></h1>
+                <p>Teman berpikir untuk coding, ide, dan pekerjaan teknis. Jelaskan apa yang kamu butuhkan, lalu biarkan Void membantu menyelesaikannya.</p>
+                <div class="suggestions" aria-label="Contoh pertanyaan">
+                    <button class="suggestion" type="button" data-prompt="Bantu saya membuat landing page yang modern">Buat landing page</button>
+                    <button class="suggestion" type="button" data-prompt="Jelaskan kode ini dengan bahasa sederhana">Jelaskan kode</button>
+                    <button class="suggestion" type="button" data-prompt="Bantu cari dan perbaiki error di project saya">Perbaiki error</button>
+                    <button class="suggestion auto-tab" id="auto-cs-tab" type="button" data-auto-tab>Auto CS</button>
+                </div>
+            </div>
+            <section class="auto-cs-panel" id="auto-cs-panel" aria-labelledby="auto-cs-title">
+                <div class="auto-panel-head">
+                    <div>
+                        <div class="auto-panel-kicker">Story assistant</div>
+                        <h2 class="auto-panel-title" id="auto-cs-title">Auto CS</h2>
+                        <p class="auto-panel-description">Isi data karakter, minta AI membuat draft story, lalu review dan edit hasilnya sebelum dikirim ke chat utama.</p>
+                    </div>
+                    <button class="auto-close" id="auto-close" type="button">Tutup</button>
+                </div>
+                <div class="auto-layout">
+                    <div class="auto-column">
+                        <h3 class="auto-column-title">Data karakter</h3>
+                        <form class="auto-form" id="auto-story-form">
+                            <label>Nama sesuai IC
+                                <input id="auto-name" type="text" placeholder="Tomas Ferrant" required>
+                            </label>
+                            <div class="auto-form-row">
+                                <label>Tanggal lahir
+                                    <input id="auto-birth" type="text" placeholder="12 Januari 2000" required>
+                                </label>
+                                <label>Asal kota
+                                    <input id="auto-city" type="text" placeholder="Los Santos" required>
+                                </label>
+                            </div>
+                            <div class="auto-form-row">
+                                <label>Jumlah paragraf
+                                    <input id="auto-paragraphs" type="number" min="1" max="5" value="3" required>
+                                </label>
+                                <label>Kalimat / paragraf
+                                    <input id="auto-sentences" type="number" min="1" max="5" value="4" required>
+                                </label>
+                            </div>
+                            <label>Pekerjaan / Jobs
+                                <input id="auto-job" type="text" placeholder="Mekanik" required>
+                            </label>
+                            <div class="auto-button-row">
+                                <button class="auto-primary" id="auto-generate" type="submit">Generate story</button>
+                                <button class="auto-secondary" id="auto-send-story" type="button" disabled>Kirim ke chat utama</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="auto-column">
+                        <h3 class="auto-column-title">Review AI</h3>
+                        <div class="auto-chat-box" id="auto-chat-box" aria-live="polite">
+                            <div class="auto-chat-message">Tanyakan gaya cerita atau minta revisi sebelum Generate.</div>
+                        </div>
+                        <form class="auto-chat-form" id="auto-chat-form">
+                            <input id="auto-chat-input" type="text" placeholder="Contoh: buat lebih misterius..." autocomplete="off">
+                            <button type="submit">Kirim</button>
+                        </form>
+                        <div class="story-state" id="auto-story-state">Draft story akan muncul di sini.</div>
+                        <textarea class="story-preview" id="auto-story-preview" placeholder="Hasil story bisa kamu review dan edit di sini..." aria-label="Preview story"></textarea>
+                        <div class="review-toolbar">
+                            <div class="detector-status" id="detector-status" data-state="idle">
+                                <span class="detector-status-dot" aria-hidden="true"></span>
+                                <span>
+                                    <strong>Pemeriksaan eksternal</strong>
+                                    <span class="detector-label" id="detector-label">Belum diperiksa</span>
+                                </span>
+                            </div>
+                            <div class="review-actions">
+                                <button class="auto-secondary" id="copy-story" type="button" disabled>Salin draf</button>
+                                <a class="auto-secondary review-link" href="https://www.zerogpt.com/" target="_blank" rel="noopener noreferrer">Buka ZeroGPT</a>
+                            </div>
+                        </div>
+                        <div class="review-note">
+                            <span aria-hidden="true">!</span>
+                            <span>Review dan edit draf secara manual sebelum dipakai. Hasil detector hanya referensi dan bukan bukti kepengarangan; aplikasi ini tidak mengarang skor atau mengulang generasi untuk mengejar angka tertentu.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <div id="chat-box" aria-live="polite"></div>
+        </section>
+
+        <div class="composer-dock">
+            <div class="file-preview" id="file-preview">
+                <span id="file-name">File siap dikirim</span>
+                <button class="remove-file" id="remove-file" type="button" aria-label="Hapus file">Hapus</button>
+            </div>
+            <form class="composer" id="composer">
+                <label class="attach-button" for="file-upload" title="Lampirkan file" aria-label="Lampirkan file">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m20.5 11.5-8.3 8.3a5 5 0 0 1-7.1-7.1l9.2-9.2a3.5 3.5 0 0 1 5 5l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>
+                </label>
+                <input id="file-upload" type="file" accept=".txt,.js,.ts,.json,.html,.css,.py,.lua,.md,.pdf">
+                <textarea id="user-input" rows="1" placeholder="Tulis pesan untuk Void..." autocomplete="off"></textarea>
+                <button class="send-button" id="send-button" type="submit" title="Kirim pesan" aria-label="Kirim pesan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 4 16 8-16 8 3-8-3-8Z"/><path d="M7 12h13"/></svg>
+                </button>
+            </form>
+            <div class="composer-footer">
+                <select class="model-select" id="model-select" aria-label="Pilih model">
+                    <option value="gpt-4">Model: GPT-4</option>
+                    <option value="claude-3">Model: Claude 3</option>
+                    <option value="default-model">Model: Default</option>
+                </select>
+                <span>Void AI dapat membuat kesalahan</span>
+            </div>
+        </div>
+
+        <nav class="bottom-nav" aria-label="Navigasi">
+            <button class="nav-item active" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m4 10 8-6 8 6v9H4v-9Z"/><path d="M9 19v-5h6v5"/></svg>
+                Chat
+            </button>
+            <button class="nav-item" type="button" data-toast="Riwayat akan tersedia di versi berikutnya">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg>
+                Riwayat
+            </button>
+            <button class="nav-item" type="button" data-toast="Pengaturan akan tersedia di versi berikutnya">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15.3a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6Z"/><path d="m19.4 15 .1.1a2 2 0 0 1-2.8 2.8l-.1-.1a2 2 0 0 0-3.4 1.4v.2a2 2 0 0 1-4 0v-.2a2 2 0 0 0-3.4-1.4l-.1.1A2 2 0 0 1 3 15.1l.1-.1A2 2 0 0 0 1.7 11.6h-.2a2 2 0 0 1 0-4h.2A2 2 0 0 0 3.1 4.2L3 4.1A2 2 0 0 1 5.8 1.3l.1.1A2 2 0 0 0 9.3.1v-.2a2 2 0 0 1 4 0v.2a2 2 0 0 0 3.4 1.4l.1-.1A2 2 0 0 1 19.6 4l-.1.1A2 2 0 0 0 20.9 7.5h.2a2 2 0 0 1 0 4h-.2A2 2 0 0 0 19.4 15Z"/></svg>
+                Pengaturan
+            </button>
+        </nav>
+    </main>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="script.js"></script>
+</body>
+</html>
