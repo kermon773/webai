@@ -212,6 +212,20 @@
             animation: rise 260ms ease both;
         }
         .auto-cs-panel.open { display: block; }
+        .guide-card {
+            margin-bottom: 14px;
+            padding: 11px;
+            border: 1px solid rgba(239, 49, 88, 0.22);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.025);
+        }
+        .guide-toggle { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+        .guide-toggle input { accent-color: var(--red); }
+        .guide-help, .guide-footer { color: var(--muted); font-size: 10px; line-height: 1.4; }
+        .guide-help { margin: 6px 0 8px; }
+        .guide-input { width: 100%; min-height: 84px; resize: vertical; box-sizing: border-box; border: 1px solid var(--line); border-radius: 8px; padding: 8px; color: var(--soft-text); background: rgba(255,255,255,.04); font: 11px/1.5 "Manrope", sans-serif; outline: 0; }
+        .guide-input:focus { border-color: rgba(239, 49, 88, .7); }
+        .guide-footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 7px; }
         .auto-panel-head {
             display: flex;
             align-items: flex-start;
@@ -407,6 +421,34 @@
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.025);
         }
+        .score-badge { color: var(--green); font-size: 10px; white-space: nowrap; }
+        .detector-copy-box {
+            width: 100%;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .detector-copy-box label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-size: 10px;
+        }
+        .detector-copy-box textarea {
+            width: 100%;
+            min-height: 58px;
+            box-sizing: border-box;
+            resize: vertical;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            color: var(--soft-text);
+            background: rgba(255, 255, 255, 0.035);
+            outline: 0;
+            font: 11px/1.5 "Manrope", sans-serif;
+        }
+        .detector-copy-box textarea:focus { border-color: rgba(95, 224, 173, 0.6); }
+        .detector-copy-box button { margin-top: 6px; }
         .detector-status {
             display: flex;
             align-items: center;
@@ -780,6 +822,18 @@
                     <div class="auto-column">
                         <h3 class="auto-column-title">Data karakter</h3>
                         <form class="auto-form" id="auto-story-form">
+                            <div class="guide-card">
+                                <label class="guide-toggle">
+                                    <input id="auto-guide-enabled" type="checkbox">
+                                    <span>Gunakan Guide CS</span>
+                                </label>
+                                <p class="guide-help">Guide ini disimpan permanen dan akan menjadi aturan story saat toggle aktif.</p>
+                                <textarea id="auto-guide-text" class="guide-input" maxlength="12000" placeholder="Contoh: Gunakan bahasa Indonesia yang natural. Hindari kekerasan, klaim berlebihan, dan informasi di luar data karakter."></textarea>
+                                <div class="guide-footer">
+                                    <span id="auto-guide-state">Guide belum dimuat.</span>
+                                    <button class="auto-secondary" id="auto-save-guide" type="button">Simpan Guide</button>
+                                </div>
+                            </div>
                             <label>Nama sesuai IC
                                 <input id="auto-name" type="text" placeholder="Tomas Ferrant" required>
                             </label>
@@ -826,6 +880,12 @@
                                     <strong>Pemeriksaan eksternal</strong>
                                     <span class="detector-label" id="detector-label">Belum diperiksa</span>
                                 </span>
+                            </div>
+                            <div class="score-badge" id="auto-score-badge" aria-live="polite">Skor AI: —</div>
+                            <div class="detector-copy-box">
+                                <label for="auto-detector-report">Ringkasan Pemeriksaan</label>
+                                <textarea id="auto-detector-report" readonly placeholder="Hasil pemeriksaan ZeroGPT akan tersimpan di sini..."></textarea>
+                                <button class="auto-secondary" id="copy-detector-report" type="button" disabled>Salin hasil pemeriksaan</button>
                             </div>
                             <div class="review-actions">
                                 <button class="auto-secondary" id="copy-story" type="button" disabled>Salin draf</button>
