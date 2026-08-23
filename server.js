@@ -8,6 +8,7 @@ const axios = require('axios');
 const { exec } = require('child_process');
 const util = require('util');
 const execPromise = util.promisify(exec);
+const { isHumanText } = require('./public/zerogpt');
 
 const app = express();
 const port = Number(process.env.PORT || 5000);
@@ -21,6 +22,34 @@ const upload = multer({ dest: UPLOAD_DIR });
 
 // 2. Tentukan folder Sandbox/Workspace agar AI tidak mengotak-atik sistem OS Anda
 const WORKSPACE_DIR = path.join(__dirname, 'workspace');
+const DATA_DIR = path.join(__dirname, 'data');
+const AUTO_CS_GUIDE_PATH = path.join(DATA_DIR, 'auto-cs-guide.json');
+
+async function readAutoCsGuide() {
+    try {
+        const raw = await fs.readFile(AUTO_CS_GUIDE_PATH, 'utf8');
+        const saved = JSON.parse(raw);
+        return {
+            enabled: saved.enabled === true,
+            text: typeof saved.text === 'string' ? saved.text : '',
+            updatedAt: saved.updatedAt || null
+        };
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+        return { enabled: false, text: '', updatedAt: null };
+    }
+}
+
+async function saveAutoCsGuide(guide) {
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    const saved = {
+        enabled: guide.enabled === true,
+        text: String(guide.text || '').trim(),
+        updatedAt: new Date().toISOString()
+    };
+    await fs.writeFile(AUTO_CS_GUIDE_PATH, JSON.stringify(saved, null, 2), 'utf8');
+    return saved;
+}
 
 // 3. Update System Prompt
 const SYSTEM_PROMPT = `You are a task-completion agent embedded in a development environment. 
@@ -110,6 +139,46 @@ app.post('/api/reset', (req, res) => {
     chatHistory = [{ role: 'system', content: SYSTEM_PROMPT }];
     remoteConversationId = null;
     res.json({ message: "History cleared." });
+});
+
+app.get('/api/auto-cs/guide', async (req, res) => {
+    try {
+        res.json(await readAutoCsGuide());
+    } catch (error) {
+        console.error('[Auto CS Guide] Read failed:', error.message);
+        res.status(500).json({ error: 'Guide Auto CS tidak dapat dibaca.' });
+    }
+});
+
+app.put('/api/auto-cs/guide', async (req, res) => {
+    try {
+        const text = typeof req.body?.text === 'string' ? req.body.text : '';
+        if (text.length > 12000) {
+            return res.status(400).json({ error: 'Guide maksimal 12.000 karakter.' });
+        }
+        const saved = await saveAutoCsGuide({
+            enabled: req.body?.enabled === true,
+            text
+        });
+        res.json(saved);
+    } catch (error) {
+        console.error('[Auto CS Guide] Save failed:', error.message);
+        res.status(500).json({ error: 'Guide Auto CS gagal disimpan.' });
+    }
+});
+
+app.post('/api/zerogpt/check', async (req, res) => {
+    try {
+        const text = typeof req.body?.text === 'string' ? req.body.text.trim() : '';
+        if (text.length < 20) {
+            return res.status(400).json({ error: 'Story terlalu pendek untuk diperiksa.' });
+        }
+        const result = await isHumanText(text);
+        res.json(result);
+    } catch (error) {
+        console.error('[ZeroGPT] Check failed:', error.message);
+        res.status(502).json({ error: 'Pemeriksaan ZeroGPT gagal dilakukan.' });
+    }
 });
 
 app.post('/api/chat', upload.single('file'), async (req, res) => {
