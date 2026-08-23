@@ -22,6 +22,13 @@ const autoChatInput = document.getElementById('auto-chat-input');
 const detectorStatus = document.getElementById('detector-status');
 const detectorLabel = document.getElementById('detector-label');
 const copyStoryButton = document.getElementById('copy-story');
+const guideEnabled = document.getElementById('auto-guide-enabled');
+const guideText = document.getElementById('auto-guide-text');
+const saveGuideButton = document.getElementById('auto-save-guide');
+const guideState = document.getElementById('auto-guide-state');
+const scoreBadge = document.getElementById('auto-score-badge');
+const detectorReport = document.getElementById('auto-detector-report');
+const copyDetectorReportButton = document.getElementById('copy-detector-report');
 
 let isSending = false;
 let isAutoBusy = false;
@@ -223,6 +230,76 @@ function setDetectorState(state, label) {
     detectorLabel.textContent = label;
 }
 
+async function loadAutoCsGuide() {
+    try {
+        const response = await fetch('/api/auto-cs/guide');
+        const guide = await parseJsonResponse(response);
+        guideEnabled.checked = guide.enabled;
+        guideText.value = guide.text || '';
+        guideState.textContent = guide.updatedAt ? 'Guide tersimpan permanen.' : 'Guide belum diisi.';
+    } catch {
+        guideState.textContent = 'Guide belum dapat dimuat.';
+    }
+}
+
+async function saveAutoCsGuide() {
+    saveGuideButton.disabled = true;
+    guideState.textContent = 'Menyimpan...';
+    try {
+        const response = await fetch('/api/auto-cs/guide', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: guideEnabled.checked, text: guideText.value })
+        });
+        await parseJsonResponse(response);
+        guideState.textContent = guideEnabled.checked ? 'Guide aktif dan tersimpan permanen.' : 'Guide tersimpan, tetapi sedang nonaktif.';
+        showToast('Guide CS berhasil disimpan');
+    } catch (error) {
+        guideState.textContent = error.message || 'Gagal menyimpan Guide.';
+    } finally {
+        saveGuideButton.disabled = false;
+    }
+}
+
+async function checkZeroGpt(text) {
+    if (!text || text.trim().length < 20) return;
+    setDetectorState('checking', 'Sedang diperiksa ZeroGPT...');
+    scoreBadge.textContent = 'Skor AI: memeriksa...';
+    detectorReport.value = 'Sedang mengambil ringkasan pemeriksaan...';
+    copyDetectorReportButton.disabled = true;
+    try {
+        const response = await fetch('/api/zerogpt/check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        });
+        const result = await parseJsonResponse(response);
+        if (result.skipped) {
+            setDetectorState('error', 'ZeroGPT tidak tersedia saat ini');
+            scoreBadge.textContent = 'Skor AI: tidak tersedia';
+            detectorReport.value = 'Pemeriksaan tidak tersedia saat ini.';
+            return;
+        }
+        setDetectorState(result.aiScore === 0 ? 'success' : 'review', `Selesai · ${result.aiScore}% AI`);
+        scoreBadge.textContent = `Skor AI: ${result.aiScore}% · Human: ${result.isHuman}%`;
+        const resultTitle = result.aiScore === 0
+            ? 'Your Text is Human written'
+            : 'Your Text is AI/GPT Generated';
+        detectorReport.value = `${resultTitle}\n${result.aiScore}%\nAI GPT*`;
+        copyDetectorReportButton.disabled = false;
+    } catch (error) {
+        setDetectorState('error', 'Pemeriksaan gagal');
+        scoreBadge.textContent = 'Skor AI: tidak tersedia';
+        detectorReport.value = 'Pemeriksaan ZeroGPT gagal dilakukan.';
+        copyDetectorReportButton.disabled = true;
+        autoStoryState.textContent = `${error.message} Draf tetap tersedia untuk direview.`;
+    }
+}
+
+function isRewriteRequest(message) {
+    return /\b(review|revisi|rewrite|tulis ulang|buat ulang|perbaiki story|ubah story)\b/i.test(message);
+}
+
 function setDraft(text, stateMessage = 'Draft siap. Review atau edit teks sebelum dikirim ke chat utama.') {
     const draft = String(text || '').trim();
     autoStoryPreview.value = draft;
@@ -231,6 +308,9 @@ function setDraft(text, stateMessage = 'Draft siap. Review atau edit teks sebelu
     autoStoryState.textContent = draft ? stateMessage : 'Draft story akan muncul di sini.';
     autoStoryState.className = draft ? 'story-state success' : 'story-state';
     setDetectorState(draft ? 'edited' : 'idle', draft ? 'Belum diperiksa untuk draf ini' : 'Belum diperiksa');
+    scoreBadge.textContent = 'Skor AI: —';
+    detectorReport.value = '';
+    copyDetectorReportButton.disabled = true;
 }
 
 function getAutoStoryData() {
@@ -264,7 +344,10 @@ async function generateAutoStory(event) {
         `Asal kota: ${data.city}`,
         `Pekerjaan: ${data.job}`,
         `Format wajib: ${paragraphs} paragraf, setiap paragraf sekitar ${sentences} kalimat.`,
-        'Tulis cerita yang koheren, spesifik, dan mudah diedit. Jangan menambahkan judul, disclaimer, atau komentar di luar story.'
+        'Tulis cerita yang koheren, spesifik, dan mudah diedit. Jangan menambahkan judul, disclaimer, atau komentar di luar story.',
+        ...(guideEnabled.checked && guideText.value.trim()
+            ? [`GUIDE CS WAJIB DIIKUTI:\n${guideText.value.trim()}`]
+            : [])
     ].join('\n');
 
     setAutoBusy(true);
@@ -275,6 +358,7 @@ async function generateAutoStory(event) {
     try {
         const result = await requestChat(prompt);
         setDraft(result.reply);
+        await checkZeroGpt(result.reply);
         appendAutoChatMessage('Draft story sudah dibuat. Silakan review di kolom preview.', 'assistant');
     } catch (error) {
         autoStoryState.textContent = error.message || 'Gagal membuat story dari AI.';
@@ -295,9 +379,23 @@ async function sendAutoChatMessage(event) {
     setAutoBusy(true);
 
     try {
-        const result = await requestChat(`Konteks Auto CS: ${message}`);
+        const currentDraft = autoStoryPreview.value.trim();
+        const reviewPrompt = isRewriteRequest(message) && currentDraft
+            ? [
+                'Konteks Auto CS: user meminta review/revisi story.',
+                `Permintaan user: ${message}`,
+                'Tulis ulang seluruh draf berikut agar lebih natural, orisinal, koheren, dan sesuai Guide CS jika aktif.',
+                'Jangan membahas skor detector, jangan menambahkan judul atau komentar di luar story.',
+                `DRAF SAAT INI:\n${currentDraft}`,
+                ...(guideEnabled.checked && guideText.value.trim()
+                    ? [`GUIDE CS WAJIB DIIKUTI:\n${guideText.value.trim()}`]
+                    : [])
+            ].join('\n\n')
+            : `Konteks Auto CS: ${message}`;
+        const result = await requestChat(reviewPrompt);
         setDraft(result.reply, 'Respons AI dipindahkan ke Draf. Review atau edit sebelum dikirim ke chat utama.');
         appendAutoChatMessage(result.reply, 'assistant');
+        await checkZeroGpt(result.reply);
     } catch (error) {
         appendAutoChatMessage(error.message || 'AI tidak dapat membalas pesan ini.', 'assistant');
     } finally {
@@ -328,6 +426,19 @@ async function copyStoryDraft() {
         showToast('Draf berhasil disalin');
     } catch {
         showToast('Browser tidak mengizinkan penyalinan otomatis');
+    }
+}
+
+async function copyDetectorReport() {
+    const report = detectorReport.value.trim();
+    if (!report) return;
+    try {
+        await navigator.clipboard.writeText(report);
+        showToast('Ringkasan pemeriksaan berhasil disalin');
+    } catch {
+        detectorReport.focus();
+        detectorReport.select();
+        showToast('Pilih dan salin hasil pemeriksaan secara manual');
     }
 }
 
@@ -420,7 +531,10 @@ autoStoryPreview.addEventListener('input', () => {
         autoStoryState.className = 'story-state';
     }
 });
+saveGuideButton.addEventListener('click', saveAutoCsGuide);
+loadAutoCsGuide();
 copyStoryButton.addEventListener('click', copyStoryDraft);
+copyDetectorReportButton.addEventListener('click', copyDetectorReport);
 
 document.querySelectorAll('[data-toast]').forEach(button => {
     button.addEventListener('click', () => showToast(button.dataset.toast));
